@@ -295,10 +295,10 @@
     renderMatchList(elements.resultsList, getLastResults(games), "Nenhum resultado encontrado");
     renderGamesTable(games);
 
-    elements.lastRead.textContent = `Ultima leitura: ${new Date().toLocaleString("pt-BR", {
+    elements.lastRead.textContent = new Date().toLocaleString("pt-BR", {
       dateStyle: "short",
       timeStyle: "short",
-    })}`;
+    });
   }
 
   function getFilteredGames() {
@@ -373,12 +373,12 @@
     resetPhoto();
 
     if (!activeHighlight) {
-      elements.highlightName.textContent = "NAO INFORMADO";
+      elements.highlightName.textContent = "Não informado";
       elements.highlightDescription.textContent = "Nenhum destaque ativo na planilha";
       return;
     }
 
-    elements.highlightName.textContent = activeHighlight.athlete || "NAO INFORMADO";
+    elements.highlightName.textContent = activeHighlight.athlete || "Não informado";
     elements.highlightDescription.textContent =
       [activeHighlight.sport, activeHighlight.description, activeHighlight.date]
         .filter(Boolean)
@@ -400,6 +400,7 @@
 
   function renderMatchList(container, games, emptyText) {
     container.textContent = "";
+    appendListHeader(container);
 
     if (!games.length) {
       const empty = document.createElement("div");
@@ -410,33 +411,43 @@
     }
 
     games.forEach((game) => {
+      const isResultsList = container === elements.resultsList;
       const item = document.createElement("article");
-      item.className = "match-item";
+      item.className = `match-item ${isResultsList ? "result-row" : "upcoming-row"}`;
 
-      const content = document.createElement("div");
-      const title = document.createElement("strong");
-      const meta = document.createElement("span");
-      const score = document.createElement("div");
+      if (isResultsList) {
+        item.appendChild(makeListCell([game.sport, game.gender].filter(Boolean).join(" - ") || "--"));
+        item.appendChild(makeListCell(getOpponent(game), "strong"));
+        item.appendChild(makeListCell(makeScore(game), "div", "match-score"));
+      } else {
+        item.appendChild(makeListCell(game.time || game.date || "--"));
+        item.appendChild(makeListCell([game.sport, game.gender].filter(Boolean).join(" - ") || "--"));
+        item.appendChild(makeListCell(getOpponent(game), "strong"));
+        item.appendChild(makeListCell(game.place || "--"));
+      }
 
-      title.textContent = makeMatchup(game);
-      meta.textContent = [
-        game.sport,
-        game.gender,
-        formatDateAndTime(game),
-        game.place,
-        game.status,
-      ]
-        .filter(Boolean)
-        .join(" - ");
-      score.className = "match-score";
-      score.textContent = makeScore(game);
-
-      content.appendChild(title);
-      content.appendChild(meta);
-      item.appendChild(content);
-      item.appendChild(score);
       container.appendChild(item);
     });
+  }
+
+  function appendListHeader(container) {
+    const header = document.createElement("div");
+    header.className = "list-header";
+
+    const labels =
+      container === elements.resultsList
+        ? ["MODALIDADE", "ADVERSARIO", "RESULTADO"]
+        : ["HORA", "MODALIDADE", "ADVERSARIO", "LOCAL"];
+
+    labels.forEach((label) => header.appendChild(makeListCell(label)));
+    container.appendChild(header);
+  }
+
+  function makeListCell(text, tagName = "span", className = "") {
+    const cell = document.createElement(tagName);
+    if (className) cell.className = className;
+    cell.textContent = text;
+    return cell;
   }
 
   function renderGamesTable(games) {
@@ -565,6 +576,16 @@
   function makeMatchup(game) {
     if (game.teamA && game.teamB) return `${game.teamA} x ${game.teamB}`;
     return game.teamA || game.teamB || "NAO INFORMADO";
+  }
+
+  function getOpponent(game) {
+    const team = normalizeValue(TEAM_NAME);
+    const teamA = normalizeValue(game.teamA);
+    const teamB = normalizeValue(game.teamB);
+
+    if (teamA.includes(team) && game.teamB) return game.teamB;
+    if (teamB.includes(team) && game.teamA) return game.teamA;
+    return makeMatchup(game);
   }
 
   function makeScore(game) {

@@ -3,119 +3,160 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#03070d" />
     <title>Central da Unificada</title>
     <link rel="preconnect" href="https://docs.google.com" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="dashboard-page">
-      <section class="dashboard-board" aria-label="Central da Unificada">
-        <img class="dashboard-art" src="./assets/dashboard-aprovado.png" alt="" />
-
-        <h1 class="sr-only">CENTRAL DA UNIFICADA</h1>
-        <img class="mobile-logo" src="./assets/cerberus-aprovado.png" alt="Logo Cerberus" />
-
-        <aside class="update-layer" aria-label="Ultima atualizacao">
-          <div id="syncStatus" class="sync-status">Carregando planilha...</div>
-          <div id="lastRead" class="last-read">--</div>
-        </aside>
-
-        <section class="metrics-layer" aria-label="Cards superiores">
-          <article class="metric metric-next">
-            <span>PROXIMO JOGO</span>
-            <strong id="statNextGame">NAO INFORMADO</strong>
-            <small id="statNextMeta">Aguardando dados</small>
-          </article>
-          <article class="metric metric-today">
-            <span>JOGOS DO DIA</span>
-            <strong id="statToday">0</strong>
-          </article>
-          <article class="metric metric-wins">
-            <span>VITORIAS</span>
-            <strong id="statWins">0</strong>
-          </article>
-          <article class="metric metric-losses">
-            <span>DERROTAS</span>
-            <strong id="statLosses">0</strong>
-          </article>
-          <article class="metric metric-pending">
-            <span>PENDENTES</span>
-            <strong id="statPending">0</strong>
-          </article>
-          <article class="metric metric-total">
-            <span>TOTAL DE JOGOS</span>
-            <strong id="statTotal">0</strong>
-          </article>
+    <main class="app-shell">
+      <header class="topbar" aria-label="Cabecalho">
+        <section class="brand-panel" aria-label="Atletica Unificada">
+          <img src="./assets/cerberus-aprovado.png" alt="Logo Cerberus" />
+          <div>
+            <strong>ATLÉTICA<br />UNIFICADA</strong>
+            <span>UNIFRAN</span>
+            <small>SOMOS UM SÓ. <b>SOMOS TODOS.</b></small>
+          </div>
         </section>
 
-        <section class="filters-panel" aria-label="Filtros">
-          <label class="filter-control filter-sport">
+        <section class="title-panel" aria-label="Central da Unificada">
+          <h1>CENTRAL DA <span>UNIFICADA</span></h1>
+          <p>CALENDÁRIO DE JOGOS E RESULTADOS</p>
+        </section>
+
+        <aside class="update-card" aria-label="Ultima atualizacao">
+          <strong>ÚLTIMA ATUALIZAÇÃO</strong>
+          <div id="lastRead" class="last-read">--</div>
+          <span id="syncStatus" class="sync-status">Carregando planilha...</span>
+        </aside>
+      </header>
+
+      <section class="metrics-layer" aria-label="Cards superiores">
+        <article class="metric metric-next">
+          <i aria-hidden="true">▰</i>
+          <div>
+            <span>PRÓXIMO JOGO</span>
+            <strong id="statNextGame">NÃO INFORMADO</strong>
+            <small id="statNextMeta">Aguardando dados</small>
+          </div>
+        </article>
+        <article class="metric metric-today">
+          <i aria-hidden="true">▦</i>
+          <div>
+            <span>JOGOS DO DIA</span>
+            <strong id="statToday">0</strong>
+          </div>
+        </article>
+        <article class="metric metric-wins">
+          <i aria-hidden="true">♜</i>
+          <div>
+            <span>VITÓRIAS</span>
+            <strong id="statWins">0</strong>
+          </div>
+        </article>
+        <article class="metric metric-losses">
+          <i aria-hidden="true">×</i>
+          <div>
+            <span>DERROTAS</span>
+            <strong id="statLosses">0</strong>
+          </div>
+        </article>
+        <article class="metric metric-pending">
+          <i aria-hidden="true">◷</i>
+          <div>
+            <span>PENDENTES</span>
+            <strong id="statPending">0</strong>
+          </div>
+        </article>
+        <article class="metric metric-total">
+          <i aria-hidden="true">●</i>
+          <div>
+            <span>TOTAL DE JOGOS</span>
+            <strong id="statTotal">0</strong>
+          </div>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <aside class="filters-panel" aria-label="Filtros">
+          <h2>FILTROS</h2>
+          <label class="filter-control">
             <span>MODALIDADE</span>
             <select id="sportFilter">
               <option value="">Todas</option>
             </select>
           </label>
-          <label class="filter-control filter-gender">
-            <span>GENERO</span>
+          <label class="filter-control">
+            <span>GÊNERO</span>
             <select id="genderFilter">
               <option value="">Todos</option>
             </select>
           </label>
-          <label class="filter-control filter-status">
+          <label class="filter-control">
             <span>STATUS</span>
             <select id="statusFilter">
               <option value="">Todos</option>
             </select>
           </label>
           <button id="clearFilters" class="clear-filters" type="button">LIMPAR FILTROS</button>
-        </section>
+        </aside>
 
-        <section class="next-panel" aria-labelledby="nextTitle">
-          <h2 id="nextTitle" class="sr-only">PROXIMO CONFRONTO</h2>
-          <div class="versus">
-            <span id="nextTeamA">NAO INFORMADO</span>
-            <strong aria-hidden="true">VS</strong>
-            <span id="nextTeamB">NAO INFORMADO</span>
-          </div>
-          <div class="match-meta">
-            <span id="nextSport">--</span>
-            <span id="nextDate">--</span>
-            <span id="nextPlace">--</span>
-            <span id="nextStatus" class="tag">--</span>
-          </div>
-        </section>
-
-        <section class="list-panel upcoming-panel" aria-labelledby="upcomingTitle">
-          <h2 id="upcomingTitle" class="sr-only">PROXIMOS JOGOS</h2>
-          <div id="upcomingList" class="match-list"></div>
-        </section>
-
-        <section class="list-panel results-panel" aria-labelledby="resultsTitle">
-          <h2 id="resultsTitle" class="sr-only">ULTIMOS RESULTADOS</h2>
-          <div id="resultsList" class="match-list"></div>
-        </section>
-
-        <section class="highlight-panel" aria-labelledby="highlightTitle">
-          <h2 id="highlightTitle" class="sr-only">ATLETA DESTAQUE</h2>
-          <div class="athlete">
-            <div id="highlightPhoto" class="athlete-photo">?</div>
-            <div class="athlete-copy">
-              <h3 id="highlightName">NAO INFORMADO</h3>
-              <p id="highlightDescription">Nenhum destaque ativo na planilha</p>
+        <section class="content-grid">
+          <section class="next-panel panel" aria-labelledby="nextTitle">
+            <div class="panel-heading">
+              <h2 id="nextTitle">PRÓXIMO CONFRONTO</h2>
+              <span id="nextStatus" class="tag">--</span>
             </div>
-          </div>
-        </section>
+            <div class="versus">
+              <span id="nextTeamA">NÃO INFORMADO</span>
+              <strong aria-hidden="true">VS</strong>
+              <span id="nextTeamB">NÃO INFORMADO</span>
+            </div>
+            <div class="match-meta">
+              <span id="nextDate">--</span>
+              <span id="nextPlace">--</span>
+              <span id="nextSport">--</span>
+            </div>
+          </section>
 
-        <section class="sr-only" aria-label="Tabela de jogos">
-          <table>
-            <tbody id="gamesTable">
-              <tr>
-                <td>Carregando dados da planilha...</td>
-              </tr>
-            </tbody>
-          </table>
+          <section class="list-panel upcoming-panel panel" aria-labelledby="upcomingTitle">
+            <div class="panel-heading">
+              <h2 id="upcomingTitle">PRÓXIMOS JOGOS</h2>
+            </div>
+            <div id="upcomingList" class="match-list"></div>
+          </section>
+
+          <section class="list-panel results-panel panel" aria-labelledby="resultsTitle">
+            <div class="panel-heading">
+              <h2 id="resultsTitle">ÚLTIMOS RESULTADOS</h2>
+            </div>
+            <div id="resultsList" class="match-list"></div>
+          </section>
+
+          <section class="highlight-panel panel" aria-labelledby="highlightTitle">
+            <div class="panel-heading">
+              <h2 id="highlightTitle">ATLETA DESTAQUE</h2>
+            </div>
+            <div class="athlete">
+              <div id="highlightPhoto" class="athlete-photo">?</div>
+              <div class="athlete-copy">
+                <h3 id="highlightName">Não informado</h3>
+                <p id="highlightDescription">Nenhum destaque ativo na planilha</p>
+              </div>
+            </div>
+          </section>
         </section>
+      </section>
+
+      <section class="sr-only" aria-label="Tabela de jogos">
+        <table>
+          <tbody id="gamesTable">
+            <tr>
+              <td>Carregando dados da planilha...</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
     </main>
 
