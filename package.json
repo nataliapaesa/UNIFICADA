@@ -1,0 +1,14 @@
+{
+  "name": "site-jogos-google-sheets",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Site estatico que le jogos e destaques direto de uma planilha publica do Google Sheets.",
+  "scripts": {
+    "dev": "npx serve . --listen 4173",
+    "build": "node -e \"console.log('Site estatico pronto para deploy na Vercel')\"",
+    "start": "npx serve . --listen 4173"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

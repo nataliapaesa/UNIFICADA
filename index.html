@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jogos Interatléticas</title>
+    <link rel="preconnect" href="https://docs.google.com" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Painel ao vivo</p>
+        <h1>Jogos Interatléticas</h1>
+      </div>
+      <div class="sync-status" id="syncStatus">Carregando planilha...</div>
+    </header>
+
+    <main class="layout">
+      <section class="scoreboard" aria-label="Resumo dos jogos">
+        <article class="feature-card">
+          <span class="label">Próximo confronto</span>
+          <h2 id="nextMatchTitle">NÃO INFORMADO</h2>
+          <p id="nextMatchMeta">Aguardando dados da aba Jogos</p>
+        </article>
+
+        <article class="feature-card">
+          <span class="label">Último resultado</span>
+          <h2 id="lastResultTitle">NÃO INFORMADO</h2>
+          <p id="lastResultMeta">Aguardando dados da aba Jogos</p>
+        </article>
+
+        <article class="feature-card highlight-card" id="highlightCard">
+          <span class="label">Atleta Destaque</span>
+          <div class="athlete">
+            <div class="athlete-photo" id="highlightPhoto">?</div>
+            <div>
+              <h2 id="highlightName">NÃO INFORMADO</h2>
+              <p id="highlightDescription">Nenhum destaque ativo na planilha</p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Tabela</p>
+              <h2>Jogos e resultados</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Hora</th>
+                  <th>Modalidade</th>
+                  <th>Categoria</th>
+                  <th>Confronto</th>
+                  <th>Placar</th>
+                  <th>Local</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="gamesTable">
+                <tr>
+                  <td colspan="8">Carregando dados da planilha...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="panel compact-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Operação</p>
+              <h2>Status da fonte</h2>
+            </div>
+          </div>
+          <dl class="source-list">
+            <div>
+              <dt>Jogos lidos</dt>
+              <dd id="gamesCount">0</dd>
+            </div>
+            <div>
+              <dt>Destaques lidos</dt>
+              <dd id="highlightsCount">0</dd>
+            </div>
+            <div>
+              <dt>Última leitura</dt>
+              <dd id="lastRead">--</dd>
+            </div>
+          </dl>
+        </aside>
+      </section>
+    </main>
+
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
