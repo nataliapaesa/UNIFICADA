@@ -1,5 +1,7 @@
 (function () {
   const CONFIG = window.SITE_CONFIG || {};
+  const TEAM_NAME = CONFIG.TEAM_NAME || "Unificada";
+
   const TAB_NAMES = {
     games: "Jogos",
     highlights: "Destaques",
@@ -8,38 +10,57 @@
   const FIELD_ALIASES = {
     date: ["data"],
     time: ["hora", "horario", "horario_do_jogo"],
-    sport: ["modalidade"],
+    sport: ["modalidade", "esporte"],
     gender: ["genero", "categoria"],
-    teamA: ["atletica_a", "atletica_a_", "atletica_a_nome"],
-    teamB: ["atletica_b", "atletica_b_", "atletica_b_nome"],
-    scoreA: ["placar_a", "placar_a_", "pontos_a"],
-    scoreB: ["placar_b", "placar_b_", "pontos_b"],
+    teamA: ["atletica_a", "atletica_a_nome", "time_a", "equipe_a"],
+    teamB: ["atletica_b", "atletica_b_nome", "time_b", "equipe_b"],
+    scoreA: ["placar_a", "pontos_a", "score_a"],
+    scoreB: ["placar_b", "pontos_b", "score_b"],
     place: ["local", "lugar", "quadra"],
     status: ["status", "situacao"],
     athlete: ["atleta", "nome", "nome_atleta"],
-    description: ["descricao", "descrição", "destaque"],
+    description: ["descricao", "destaque", "texto"],
     photoUrl: ["foto_url", "foto", "imagem", "url_foto"],
     active: ["ativo", "ativa"],
   };
 
+  const state = {
+    games: [],
+    highlights: [],
+  };
+
   const elements = {
     syncStatus: document.getElementById("syncStatus"),
-    nextMatchTitle: document.getElementById("nextMatchTitle"),
-    nextMatchMeta: document.getElementById("nextMatchMeta"),
-    lastResultTitle: document.getElementById("lastResultTitle"),
-    lastResultMeta: document.getElementById("lastResultMeta"),
+    statNextGame: document.getElementById("statNextGame"),
+    statNextMeta: document.getElementById("statNextMeta"),
+    statToday: document.getElementById("statToday"),
+    statWins: document.getElementById("statWins"),
+    statLosses: document.getElementById("statLosses"),
+    statPending: document.getElementById("statPending"),
+    statTotal: document.getElementById("statTotal"),
+    sportFilter: document.getElementById("sportFilter"),
+    genderFilter: document.getElementById("genderFilter"),
+    statusFilter: document.getElementById("statusFilter"),
+    clearFilters: document.getElementById("clearFilters"),
+    nextTeamA: document.getElementById("nextTeamA"),
+    nextTeamB: document.getElementById("nextTeamB"),
+    nextSport: document.getElementById("nextSport"),
+    nextDate: document.getElementById("nextDate"),
+    nextPlace: document.getElementById("nextPlace"),
+    nextStatus: document.getElementById("nextStatus"),
+    highlightPhoto: document.getElementById("highlightPhoto"),
     highlightName: document.getElementById("highlightName"),
     highlightDescription: document.getElementById("highlightDescription"),
-    highlightPhoto: document.getElementById("highlightPhoto"),
+    upcomingList: document.getElementById("upcomingList"),
+    resultsList: document.getElementById("resultsList"),
     gamesTable: document.getElementById("gamesTable"),
-    gamesCount: document.getElementById("gamesCount"),
-    highlightsCount: document.getElementById("highlightsCount"),
     lastRead: document.getElementById("lastRead"),
   };
 
   document.addEventListener("DOMContentLoaded", init);
 
   async function init() {
+    bindFilters();
     setStatus("Lendo dados do Google Sheets...");
 
     try {
@@ -48,13 +69,32 @@
         loadTab(TAB_NAMES.highlights, CONFIG.DESTAQUES_CSV_URL),
       ]);
 
-      render({ games, highlights });
-      setStatus("Dados atualizados ao carregar a página");
+      state.games = games.map(normalizeGame);
+      state.highlights = highlights.map(normalizeHighlight);
+
+      populateFilters(state.games);
+      render();
+      setStatus("Dados atualizados ao carregar a pagina");
     } catch (error) {
       console.error(error);
-      render({ games: [], highlights: [] });
-      setStatus(error.message || "Não foi possível ler a planilha", true);
+      state.games = [];
+      state.highlights = [];
+      render();
+      setStatus(error.message || "Nao foi possivel ler a planilha", true);
     }
+  }
+
+  function bindFilters() {
+    [elements.sportFilter, elements.genderFilter, elements.statusFilter].forEach((filter) => {
+      filter.addEventListener("change", render);
+    });
+
+    elements.clearFilters.addEventListener("click", () => {
+      elements.sportFilter.value = "";
+      elements.genderFilter.value = "";
+      elements.statusFilter.value = "";
+      render();
+    });
   }
 
   async function loadTab(tabName, directCsvUrl) {
@@ -63,7 +103,7 @@
     }
 
     if (!CONFIG.SHEET_URL || !CONFIG.SHEET_URL.trim()) {
-      throw new Error("Configure o link público da planilha em config.js");
+      throw new Error("Configure o link publico da planilha em config.js");
     }
 
     return fetchGoogleVisualizationTab(CONFIG.SHEET_URL, tabName);
@@ -116,7 +156,7 @@
 
       script.onerror = () => {
         cleanup();
-        reject(new Error(`Não foi possível acessar a aba ${tabName}`));
+        reject(new Error(`Nao foi possivel acessar a aba ${tabName}`));
       };
 
       script.src = `${endpoint}?${params.toString()}`;
@@ -142,7 +182,7 @@
       return `https://docs.google.com/spreadsheets/d/${sheetMatch[1]}/gviz/tq`;
     }
 
-    throw new Error("Link da planilha inválido. Use uma URL pública do Google Sheets.");
+    throw new Error("Link da planilha invalido. Use uma URL publica do Google Sheets.");
   }
 
   function visualizationTableToObjects(table) {
@@ -223,21 +263,226 @@
     return rows;
   }
 
-  function render({ games, highlights }) {
-    const normalizedGames = games.map(normalizeGame);
-    const normalizedHighlights = highlights.map(normalizeHighlight);
+  function populateFilters(games) {
+    fillSelect(elements.sportFilter, uniqueValues(games.map((game) => game.sport)), "Todas");
+    fillSelect(elements.genderFilter, uniqueValues(games.map((game) => game.gender)), "Todos");
+    fillSelect(elements.statusFilter, uniqueValues(games.map((game) => game.status)), "Todos");
+  }
 
-    renderNextMatch(normalizedGames);
-    renderLastResult(normalizedGames);
-    renderHighlight(normalizedHighlights);
-    renderGamesTable(normalizedGames);
+  function fillSelect(select, values, firstLabel) {
+    const selected = select.value;
+    select.textContent = "";
+    appendOption(select, "", firstLabel);
+    values.forEach((value) => appendOption(select, value, value));
+    select.value = values.includes(selected) ? selected : "";
+  }
 
-    elements.gamesCount.textContent = String(normalizedGames.length);
-    elements.highlightsCount.textContent = String(normalizedHighlights.length);
-    elements.lastRead.textContent = new Date().toLocaleString("pt-BR", {
+  function appendOption(select, value, label) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+  }
+
+  function render() {
+    const games = getFilteredGames();
+    const nextGame = findNextGame(games);
+
+    renderStats(games, nextGame);
+    renderNextConfrontation(nextGame);
+    renderHighlight(state.highlights);
+    renderMatchList(elements.upcomingList, getUpcomingGames(games), "Nenhum proximo jogo encontrado");
+    renderMatchList(elements.resultsList, getLastResults(games), "Nenhum resultado encontrado");
+    renderGamesTable(games);
+
+    elements.lastRead.textContent = `Ultima leitura: ${new Date().toLocaleString("pt-BR", {
       dateStyle: "short",
       timeStyle: "short",
+    })}`;
+  }
+
+  function getFilteredGames() {
+    const sport = normalizeValue(elements.sportFilter.value);
+    const gender = normalizeValue(elements.genderFilter.value);
+    const status = normalizeValue(elements.statusFilter.value);
+
+    return state.games.filter((game) => {
+      return (
+        (!sport || normalizeValue(game.sport) === sport) &&
+        (!gender || normalizeValue(game.gender) === gender) &&
+        (!status || normalizeValue(game.status) === status)
+      );
     });
+  }
+
+  function renderStats(games, nextGame) {
+    const stats = getStats(games);
+
+    elements.statNextGame.textContent = nextGame ? makeMatchup(nextGame) : "NAO INFORMADO";
+    elements.statNextMeta.textContent = nextGame
+      ? [nextGame.sport, formatDateAndTime(nextGame)].filter(Boolean).join(" - ")
+      : "Sem jogo pendente nos filtros";
+    elements.statToday.textContent = String(stats.today);
+    elements.statWins.textContent = String(stats.wins);
+    elements.statLosses.textContent = String(stats.losses);
+    elements.statPending.textContent = String(stats.pending);
+    elements.statTotal.textContent = String(stats.total);
+  }
+
+  function getStats(games) {
+    return games.reduce(
+      (stats, game) => {
+        stats.total += 1;
+        if (isToday(game.sortDate)) stats.today += 1;
+        if (!isFinished(game) && !isCanceled(game)) stats.pending += 1;
+
+        const result = getTeamResult(game);
+        if (result === "win") stats.wins += 1;
+        if (result === "loss") stats.losses += 1;
+
+        return stats;
+      },
+      { total: 0, today: 0, wins: 0, losses: 0, pending: 0 }
+    );
+  }
+
+  function renderNextConfrontation(game) {
+    if (!game) {
+      elements.nextTeamA.textContent = "NAO INFORMADO";
+      elements.nextTeamB.textContent = "NAO INFORMADO";
+      elements.nextSport.textContent = "--";
+      elements.nextDate.textContent = "--";
+      elements.nextPlace.textContent = "--";
+      setTag(elements.nextStatus, "--");
+      return;
+    }
+
+    elements.nextTeamA.textContent = game.teamA || "NAO INFORMADO";
+    elements.nextTeamB.textContent = game.teamB || "NAO INFORMADO";
+    elements.nextSport.textContent = [game.sport, game.gender].filter(Boolean).join(" - ") || "--";
+    elements.nextDate.textContent = formatDateAndTime(game) || "--";
+    elements.nextPlace.textContent = game.place || "--";
+    setTag(elements.nextStatus, game.status || "Pendente");
+  }
+
+  function renderHighlight(highlights) {
+    const activeHighlight = highlights
+      .filter((highlight) => normalizeValue(highlight.active) === "sim")
+      .sort(sortByDateDesc)[0];
+
+    resetPhoto();
+
+    if (!activeHighlight) {
+      elements.highlightName.textContent = "NAO INFORMADO";
+      elements.highlightDescription.textContent = "Nenhum destaque ativo na planilha";
+      return;
+    }
+
+    elements.highlightName.textContent = activeHighlight.athlete || "NAO INFORMADO";
+    elements.highlightDescription.textContent =
+      [activeHighlight.sport, activeHighlight.description, activeHighlight.date]
+        .filter(Boolean)
+        .join(" - ") || "Destaque ativo";
+
+    if (activeHighlight.photoUrl) {
+      const image = document.createElement("img");
+      image.alt = activeHighlight.athlete
+        ? `Foto de ${activeHighlight.athlete}`
+        : "Foto do atleta destaque";
+      image.src = activeHighlight.photoUrl;
+      image.onerror = resetPhoto;
+      elements.highlightPhoto.textContent = "";
+      elements.highlightPhoto.appendChild(image);
+    } else {
+      elements.highlightPhoto.textContent = initials(activeHighlight.athlete);
+    }
+  }
+
+  function renderMatchList(container, games, emptyText) {
+    container.textContent = "";
+
+    if (!games.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = emptyText;
+      container.appendChild(empty);
+      return;
+    }
+
+    games.forEach((game) => {
+      const item = document.createElement("article");
+      item.className = "match-item";
+
+      const content = document.createElement("div");
+      const title = document.createElement("strong");
+      const meta = document.createElement("span");
+      const score = document.createElement("div");
+
+      title.textContent = makeMatchup(game);
+      meta.textContent = [
+        game.sport,
+        game.gender,
+        formatDateAndTime(game),
+        game.place,
+        game.status,
+      ]
+        .filter(Boolean)
+        .join(" - ");
+      score.className = "match-score";
+      score.textContent = makeScore(game);
+
+      content.appendChild(title);
+      content.appendChild(meta);
+      item.appendChild(content);
+      item.appendChild(score);
+      container.appendChild(item);
+    });
+  }
+
+  function renderGamesTable(games) {
+    elements.gamesTable.textContent = "";
+
+    if (!games.length) {
+      const row = document.createElement("tr");
+      const cell = document.createElement("td");
+      cell.colSpan = 8;
+      cell.className = "empty";
+      cell.textContent = "Nenhum jogo encontrado para os filtros selecionados";
+      row.appendChild(cell);
+      elements.gamesTable.appendChild(row);
+      return;
+    }
+
+    games.slice().sort(sortByDateAsc).forEach((game) => {
+      const row = document.createElement("tr");
+      appendCell(row, game.date || "--");
+      appendCell(row, game.time || "--");
+      appendCell(row, game.sport || "--");
+      appendCell(row, game.gender || "--");
+      appendCell(row, makeMatchup(game), "matchup");
+      appendCell(row, makeScore(game), "score");
+      appendCell(row, game.place || "--");
+
+      const statusCell = document.createElement("td");
+      const status = document.createElement("span");
+      setTag(status, game.status || "--");
+      statusCell.appendChild(status);
+      row.appendChild(statusCell);
+
+      elements.gamesTable.appendChild(row);
+    });
+  }
+
+  function appendCell(row, text, className) {
+    const cell = document.createElement("td");
+    if (className) cell.className = className;
+    cell.textContent = text;
+    row.appendChild(cell);
+  }
+
+  function setTag(element, text) {
+    element.className = `tag ${normalizeKey(text)}`;
+    element.textContent = text;
   }
 
   function normalizeGame(row) {
@@ -272,132 +517,6 @@
     return highlight;
   }
 
-  function renderNextMatch(games) {
-    const nextMatch = games
-      .filter((game) => !isFinished(game) && !isCanceled(game))
-      .sort(sortByDateAsc)[0];
-
-    if (!nextMatch) {
-      elements.nextMatchTitle.textContent = "NÃO INFORMADO";
-      elements.nextMatchMeta.textContent = "Nenhum próximo confronto ativo na planilha";
-      return;
-    }
-
-    elements.nextMatchTitle.textContent = makeMatchup(nextMatch);
-    elements.nextMatchMeta.textContent = [
-      nextMatch.sport,
-      nextMatch.gender,
-      formatDateAndTime(nextMatch),
-      nextMatch.place,
-      nextMatch.status,
-    ]
-      .filter(Boolean)
-      .join(" • ");
-  }
-
-  function renderLastResult(games) {
-    const lastResult = games.filter(isFinished).sort(sortByDateDesc)[0];
-
-    if (!lastResult) {
-      elements.lastResultTitle.textContent = "NÃO INFORMADO";
-      elements.lastResultMeta.textContent = "Nenhum resultado finalizado na planilha";
-      return;
-    }
-
-    elements.lastResultTitle.textContent = `${makeMatchup(lastResult)} ${makeScore(lastResult)}`;
-    elements.lastResultMeta.textContent = [
-      lastResult.sport,
-      lastResult.gender,
-      formatDateAndTime(lastResult),
-      lastResult.place,
-      lastResult.status,
-    ]
-      .filter(Boolean)
-      .join(" • ");
-  }
-
-  function renderHighlight(highlights) {
-    const activeHighlight = highlights
-      .filter((highlight) => normalizeValue(highlight.active) === "sim")
-      .sort(sortByDateDesc)[0];
-
-    resetPhoto();
-
-    if (!activeHighlight) {
-      elements.highlightName.textContent = "NÃO INFORMADO";
-      elements.highlightDescription.textContent = "Nenhum destaque ativo na planilha";
-      return;
-    }
-
-    elements.highlightName.textContent = activeHighlight.athlete || "NÃO INFORMADO";
-    elements.highlightDescription.textContent = [
-      activeHighlight.sport,
-      activeHighlight.description,
-      activeHighlight.date,
-    ]
-      .filter(Boolean)
-      .join(" • ");
-
-    if (activeHighlight.photoUrl) {
-      const image = document.createElement("img");
-      image.alt = activeHighlight.athlete
-        ? `Foto de ${activeHighlight.athlete}`
-        : "Foto do atleta destaque";
-      image.src = activeHighlight.photoUrl;
-      image.onerror = resetPhoto;
-      elements.highlightPhoto.textContent = "";
-      elements.highlightPhoto.appendChild(image);
-    } else {
-      elements.highlightPhoto.textContent = initials(activeHighlight.athlete);
-    }
-  }
-
-  function renderGamesTable(games) {
-    elements.gamesTable.textContent = "";
-
-    if (!games.length) {
-      const row = document.createElement("tr");
-      const cell = document.createElement("td");
-      cell.colSpan = 8;
-      cell.className = "empty";
-      cell.textContent = "Nenhum jogo encontrado na aba Jogos";
-      row.appendChild(cell);
-      elements.gamesTable.appendChild(row);
-      return;
-    }
-
-    games.sort(sortByDateAsc).forEach((game) => {
-      const row = document.createElement("tr");
-      appendCell(row, game.date || "--");
-      appendCell(row, game.time || "--");
-      appendCell(row, game.sport || "--");
-      appendCell(row, game.gender || "--");
-      appendCell(row, makeMatchup(game), "matchup");
-      appendCell(row, makeScore(game), "score");
-      appendCell(row, game.place || "--");
-
-      const statusCell = document.createElement("td");
-      const status = document.createElement("span");
-      status.className = `status ${normalizeKey(game.status)}`;
-      status.textContent = game.status || "--";
-      statusCell.appendChild(status);
-      row.appendChild(statusCell);
-
-      elements.gamesTable.appendChild(row);
-    });
-  }
-
-  function appendCell(row, text, className) {
-    const cell = document.createElement("td");
-    if (className) cell.className = className;
-    cell.textContent = text;
-    row.appendChild(cell);
-  }
-
-  function resetPhoto() {
-    elements.highlightPhoto.textContent = "?";
-  }
-
   function getField(row, aliases) {
     for (const alias of aliases) {
       const key = normalizeKey(alias);
@@ -409,9 +528,43 @@
     return "";
   }
 
+  function findNextGame(games) {
+    const pending = games.filter((game) => !isFinished(game) && !isCanceled(game));
+    const future = pending.filter((game) => !game.sortDate || isTodayOrFuture(game.sortDate));
+    return (future.length ? future : pending).sort(sortByDateAsc)[0] || null;
+  }
+
+  function getUpcomingGames(games) {
+    return games
+      .filter((game) => !isFinished(game) && !isCanceled(game))
+      .filter((game) => !game.sortDate || isTodayOrFuture(game.sortDate))
+      .sort(sortByDateAsc)
+      .slice(0, 8);
+  }
+
+  function getLastResults(games) {
+    return games.filter(isFinished).sort(sortByDateDesc).slice(0, 8);
+  }
+
+  function getTeamResult(game) {
+    if (!isFinished(game)) return "";
+
+    const scoreA = parseScore(game.scoreA);
+    const scoreB = parseScore(game.scoreB);
+    if (scoreA == null || scoreB == null || scoreA === scoreB) return "";
+
+    const team = normalizeValue(TEAM_NAME);
+    const teamA = normalizeValue(game.teamA);
+    const teamB = normalizeValue(game.teamB);
+
+    if (teamA.includes(team)) return scoreA > scoreB ? "win" : "loss";
+    if (teamB.includes(team)) return scoreB > scoreA ? "win" : "loss";
+    return "";
+  }
+
   function makeMatchup(game) {
     if (game.teamA && game.teamB) return `${game.teamA} x ${game.teamB}`;
-    return game.teamA || game.teamB || "NÃO INFORMADO";
+    return game.teamA || game.teamB || "NAO INFORMADO";
   }
 
   function makeScore(game) {
@@ -423,7 +576,7 @@
   }
 
   function formatDateAndTime(game) {
-    return [game.date, game.time].filter(Boolean).join(" às ");
+    return [game.date, game.time].filter(Boolean).join(" as ");
   }
 
   function isFinished(game) {
@@ -442,6 +595,25 @@
   function isCanceled(game) {
     const status = normalizeValue(game.status);
     return status.includes("cancelado") || status.includes("adiado");
+  }
+
+  function isToday(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return false;
+    const today = new Date();
+    return (
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    );
+  }
+
+  function isTodayOrFuture(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return true;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const compared = new Date(date);
+    compared.setHours(0, 0, 0, 0);
+    return compared.getTime() >= today.getTime();
   }
 
   function sortByDateAsc(a, b) {
@@ -483,7 +655,9 @@
       );
     }
 
-    const brazilianDate = dateText.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+    const brazilianDate = dateText.match(
+      /^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})(?:\s+(\d{1,2})[:h](\d{2})?)?/i
+    );
     if (brazilianDate) {
       const year =
         brazilianDate[3].length === 2
@@ -493,12 +667,12 @@
         year,
         Number(brazilianDate[2]) - 1,
         Number(brazilianDate[1]),
-        time.hours ?? 0,
-        time.minutes ?? 0
+        time.hours ?? Number(brazilianDate[4] || 0),
+        time.minutes ?? Number(brazilianDate[5] || 0)
       );
     }
 
-    const isoDate = dateText.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    const isoDate = dateText.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
     if (isoDate) {
       return new Date(
         Number(isoDate[1]),
@@ -527,6 +701,11 @@
     };
   }
 
+  function parseScore(value) {
+    const number = Number(String(value || "").replace(",", "."));
+    return Number.isFinite(number) ? number : null;
+  }
+
   function normalizeKey(value) {
     return normalizeValue(value).replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   }
@@ -537,6 +716,12 @@
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function uniqueValues(values) {
+    return Array.from(new Set(values.map((value) => String(value || "").trim()).filter(Boolean))).sort(
+      (a, b) => a.localeCompare(b, "pt-BR")
+    );
   }
 
   function hasAnyValue(row) {
@@ -555,6 +740,10 @@
       .map((part) => part[0])
       .join("")
       .toUpperCase();
+  }
+
+  function resetPhoto() {
+    elements.highlightPhoto.textContent = "?";
   }
 
   function withCacheBuster(url) {

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-labelledby="title desc">
+  <title id="title">Logo Cerberus</title>
+  <desc id="desc">Emblema neon de tres cabecas inspirado em Cerberus.</desc>
+  <defs>
+    <linearGradient id="main" x1="32" y1="32" x2="188" y2="188" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#28d7ff"/>
+      <stop offset="0.5" stop-color="#f7f9ff"/>
+      <stop offset="1" stop-color="#ff184f"/>
+    </linearGradient>
+    <filter id="glow" x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.2 0 0 0 0 0.78 0 0 0 0 1 0 0 0 0.7 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="220" height="220" rx="36" fill="#070914"/>
+  <path d="M110 16 188 52v58c0 45-29 75-78 94-49-19-78-49-78-94V52l78-36Z" fill="#0d1021" stroke="url(#main)" stroke-width="6" filter="url(#glow)"/>
+  <path d="M70 89 47 70l11 43-16 23 35-3 20 31 13-52-18-27-22 4Z" fill="#111934" stroke="#28d7ff" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M150 89 173 70l-11 43 16 23-35-3-20 31-13-52 18-27 22 4Z" fill="#111934" stroke="#ff184f" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M110 52 83 82l10 43-17 20 34 38 34-38-17-20 10-43-27-30Z" fill="#161b34" stroke="url(#main)" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M94 103h12l-8 10 13 2-21 20 4-18-12-3 12-11Zm32 0h-12l8 10-13 2 21 20-4-18 12-3-12-11Z" fill="#f7f9ff"/>
+  <path d="M83 84 64 97m73-13 19 13M96 150h28m-14 0v23" stroke="#f7f9ff" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="78" cy="108" r="5" fill="#28d7ff"/>
+  <circle cx="142" cy="108" r="5" fill="#ff184f"/>
+  <circle cx="110" cy="96" r="6" fill="#f7f9ff"/>
+</svg>

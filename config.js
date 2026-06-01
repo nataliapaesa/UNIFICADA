@@ -18,4 +18,10 @@ window.SITE_CONFIG = {
   */
   JOGOS_CSV_URL: "",
   DESTAQUES_CSV_URL: "",
+
+  /*
+    Nome usado para calcular vitorias e derrotas.
+    O site procura esse texto nas colunas "atletica A" e "atletica B".
+  */
+  TEAM_NAME: "Unificada",
 };

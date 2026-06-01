@@ -1,22 +1,24 @@
-# Site de Jogos com Google Sheets
+# Central da Unificada
 
 Site estatico preparado para deploy gratuito na Vercel.
 
-O site le os dados diretamente de uma planilha publica do Google Sheets sempre que a pagina carrega. Assim, a equipe pode atualizar jogos, resultados, proximo confronto e atleta destaque pela planilha, sem alterar codigo e sem fazer novo deploy.
+O site le os dados diretamente de uma planilha publica do Google Sheets sempre que a pagina carrega. Assim, a equipe pode atualizar jogos, resultados, proximo confronto, filtros, estatisticas e atleta destaque pela planilha, sem alterar codigo e sem fazer novo deploy.
 
 ## Estrutura do projeto
 
 ```text
 .
-├── index.html       # Estrutura da pagina
-├── styles.css       # Visual e legibilidade do site
-├── app.js           # Leitura do Google Sheets e montagem dos dados
-├── config.js        # Link publico/exportavel da planilha
-├── package.json     # Scripts do projeto
-├── vercel.json      # Configuracao para deploy na Vercel
-├── netlify.toml     # Opcional, caso queira publicar tambem na Netlify
-├── .gitignore       # Arquivos ignorados pelo Git
-└── README.md        # Este guia
+|-- index.html
+|-- styles.css
+|-- app.js
+|-- config.js
+|-- assets/
+|   `-- cerberus-logo.svg
+|-- package.json
+|-- vercel.json
+|-- netlify.toml
+|-- .gitignore
+`-- README.md
 ```
 
 ## Estrutura da planilha
@@ -51,6 +53,7 @@ NAO INFORMADO
 6. Copie o link publico da planilha.
 7. Abra `config.js`.
 8. Cole o link em `SHEET_URL`.
+9. Se necessario, ajuste `TEAM_NAME` para o nome usado na planilha.
 
 Exemplo:
 
@@ -59,10 +62,26 @@ window.SITE_CONFIG = {
   SHEET_URL: "https://docs.google.com/spreadsheets/d/ID_DA_PLANILHA/edit?usp=sharing",
   JOGOS_CSV_URL: "",
   DESTAQUES_CSV_URL: "",
+  TEAM_NAME: "Unificada",
 };
 ```
 
 Tambem funciona se voce publicar a planilha pela opcao `Arquivo > Compartilhar > Publicar na Web`.
+
+## O que vem da planilha
+
+O site usa a aba `Jogos` para montar:
+
+- card de proximo jogo;
+- card de jogos do dia;
+- cards de vitorias, derrotas, pendentes e total;
+- filtros de modalidade, genero e status;
+- area de proximo confronto;
+- proximos jogos;
+- ultimos resultados;
+- tabela completa.
+
+O site usa a aba `Destaques` para montar o card `Atleta destaque`, exibindo somente a linha com `ativo = SIM`.
 
 ## Testar no computador
 
@@ -82,55 +101,35 @@ Tambem e possivel abrir `index.html` direto no navegador, mas o servidor local e
 
 ## Enviar para o GitHub
 
-### Opcao 1: usando Git pelo terminal
-
 Entre na pasta do projeto:
 
 ```bash
-cd caminho/da/pasta/do/projeto
+cd "C:\Users\natal\Documents\Codex\2026-05-31\ajuste-o-site-para-ler-os\outputs"
 ```
 
-Inicialize o repositorio:
-
-```bash
-git init
-```
-
-Adicione os arquivos:
+Adicione os arquivos alterados:
 
 ```bash
 git add .
 ```
 
-Crie o primeiro commit:
+Crie um commit:
 
 ```bash
-git commit -m "Primeira versao do site"
+git commit -m "Atualiza layout final da Central da Unificada"
 ```
 
-Crie a branch principal:
+Envie para o GitHub:
 
 ```bash
-git branch -M main
+git push
 ```
-
-No GitHub, crie um repositorio novo vazio. Depois copie a URL do repositorio e rode:
-
-```bash
-git remote add origin https://github.com/SEU_USUARIO/NOME_DO_REPOSITORIO.git
-git push -u origin main
-```
-
-### Opcao 2: enviando pelo site do GitHub
-
-1. Acesse `https://github.com`.
-2. Clique em `New repository`.
-3. Crie um repositorio vazio.
-4. Clique em `uploading an existing file`.
-5. Arraste todos os arquivos desta pasta para o GitHub.
-6. Clique em `Commit changes`.
 
 ## Publicar na Vercel
+
+Se o projeto da Vercel ja esta ligado ao GitHub, basta fazer `git push`. A Vercel cria um novo deploy automaticamente.
+
+Se precisar importar de novo:
 
 1. Acesse `https://vercel.com`.
 2. Entre usando sua conta do GitHub.
@@ -152,8 +151,6 @@ npm run build
 
 9. Clique em `Deploy`.
 
-Quando o deploy terminar, a Vercel vai gerar um link publico do site.
-
 ## Atualizacoes depois do deploy
 
 Para atualizar jogos, resultados, proximo confronto ou atleta destaque:
@@ -165,4 +162,4 @@ Para atualizar jogos, resultados, proximo confronto ou atleta destaque:
 
 Nao precisa alterar codigo nem fazer novo deploy.
 
-Faca novo deploy somente se voce alterar arquivos do projeto, como `index.html`, `styles.css`, `app.js` ou `config.js`.
+Faca novo deploy somente se voce alterar arquivos do projeto, como `index.html`, `styles.css`, `app.js`, `config.js` ou arquivos em `assets/`.
