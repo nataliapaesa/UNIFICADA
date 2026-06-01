@@ -10,7 +10,7 @@ window.SITE_CONFIG = {
     - Jogos
     - Destaques
   */
-  SHEET_URL: "",
+  SHEET_URL: "https://docs.google.com/spreadsheets/d/1piRlCHWUdj2Y3rJbhqE99qaXmkJJ-k4yWor9iqnBLYg",
 
   /*
     Opcional: use links CSV/exportaveis diretos se preferir.
