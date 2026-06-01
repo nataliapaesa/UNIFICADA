@@ -547,34 +547,53 @@
 
   function renderMatchList(container, games, emptyText) {
     container.textContent = "";
+    container.dataset.renderedCount = String(games.length);
     appendListHeader(container);
+
+    const body = document.createElement("div");
+    body.className = "list-body";
+
+    const track = document.createElement("div");
+    track.className = "list-scroll";
+
+    const sourceGroup = document.createElement("div");
+    sourceGroup.className = "list-group";
+    track.appendChild(sourceGroup);
+
+    body.appendChild(track);
+    container.appendChild(body);
 
     if (!games.length) {
       const empty = document.createElement("div");
       empty.className = "empty";
       empty.textContent = emptyText;
-      container.appendChild(empty);
+      sourceGroup.appendChild(empty);
       return;
     }
 
+    const isResultsList = container === elements.resultsList;
+
     games.forEach((game) => {
-      const isResultsList = container === elements.resultsList;
-      const item = document.createElement("article");
-      item.className = `match-item ${isResultsList ? "result-row" : "upcoming-row"}`;
-
-      if (isResultsList) {
-        item.appendChild(makeListCell([game.sport, game.gender].filter(Boolean).join(" - ") || "--"));
-        item.appendChild(makeListCell(getOpponent(game), "strong"));
-        item.appendChild(makeListCell(makeScore(game), "div", "match-score"));
-      } else {
-        item.appendChild(makeListCell(game.time || game.date || "--"));
-        item.appendChild(makeListCell([game.sport, game.gender].filter(Boolean).join(" - ") || "--"));
-        item.appendChild(makeListCell(getOpponent(game), "strong"));
-        item.appendChild(makeListCell(game.place || "--"));
-      }
-
-      container.appendChild(item);
+      sourceGroup.appendChild(createMatchItem(game, isResultsList));
     });
+  }
+
+  function createMatchItem(game, isResultsList) {
+    const item = document.createElement("article");
+    item.className = `match-item ${isResultsList ? "result-row" : "upcoming-row"}`;
+
+    if (isResultsList) {
+      item.appendChild(makeListCell([game.sport, game.gender].filter(Boolean).join(" - ") || "--"));
+      item.appendChild(makeListCell(getOpponent(game), "strong"));
+      item.appendChild(makeListCell(makeScore(game), "div", "match-score"));
+      return item;
+    }
+
+    item.appendChild(makeListCell(game.time || game.date || "--"));
+    item.appendChild(makeListCell([game.sport, game.gender].filter(Boolean).join(" - ") || "--"));
+    item.appendChild(makeListCell(getOpponent(game), "strong"));
+    item.appendChild(makeListCell(game.place || "--"));
+    return item;
   }
 
   function appendListHeader(container) {
@@ -699,8 +718,7 @@
     return games
       .filter((game) => !isFinished(game) && !isCanceled(game))
       .filter((game) => !game.sortDate || isTodayOrFuture(game.sortDate))
-      .sort(sortByDateAsc)
-      .slice(0, 8);
+      .sort(sortByDateAsc);
   }
 
   function getLastResults(games) {
