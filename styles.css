@@ -231,6 +231,15 @@ select {
   border-color: rgba(255, 27, 36, 0.72);
 }
 
+.metric-next {
+  overflow: hidden;
+}
+
+.metric-next > div {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .metric i {
   display: grid;
   place-items: center;
@@ -294,13 +303,22 @@ select {
 }
 
 .metric-next strong {
-  font-size: clamp(0.88rem, 0.98vw, 1.08rem);
-  line-height: 1.05;
+  font-size: clamp(0.82rem, 0.92vw, 1rem);
+  line-height: 0.98;
   white-space: pre-line;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.metric-next small {
+  max-width: 100%;
+  font-size: 0.66rem;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .workspace {

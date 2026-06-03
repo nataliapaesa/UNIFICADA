@@ -537,7 +537,7 @@
       ? [nextGame.time || nextGame.date, getOpponent(nextGame)].filter(Boolean).join("\n")
       : "NAO INFORMADO";
     elements.statNextMeta.textContent = nextGame
-      ? [nextGame.sport, nextGame.place].filter(Boolean).join(" - ")
+      ? nextGame.sport || "--"
       : "Sem jogo pendente nos filtros";
     elements.statToday.textContent = String(stats.today);
     elements.statWins.textContent = String(stats.wins);
