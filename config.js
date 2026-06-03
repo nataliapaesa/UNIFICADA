@@ -10,6 +10,13 @@ window.SITE_CONFIG = {
     - Jogos
     - Destaques
   */
+  OFFICIAL_SHEET_URL: "https://docs.google.com/spreadsheets/d/1piRlCHWUdj2Y3rJbhqE99qaXmkJJ-k4yWor9iqnBLYg",
+  CONTROL_SHEET_URL: "https://docs.google.com/spreadsheets/d/1G7Dxr3_wcI4h7a5D5eR8tekXN6ISX1OXRhVTmM-kTSM/edit?usp=sharing",
+
+  /*
+    Compatibilidade com a versao anterior do site.
+    OFFICIAL_SHEET_URL tem prioridade quando preenchida.
+  */
   SHEET_URL: "https://docs.google.com/spreadsheets/d/1piRlCHWUdj2Y3rJbhqE99qaXmkJJ-k4yWor9iqnBLYg",
 
   /*
@@ -18,6 +25,8 @@ window.SITE_CONFIG = {
   */
   JOGOS_CSV_URL: "",
   DESTAQUES_CSV_URL: "",
+  RESULTADOS_CSV_URL: "",
+  ATLETA_DESTAQUE_CSV_URL: "",
 
   /*
     Nome usado para calcular vitorias e derrotas.

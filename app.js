@@ -5,19 +5,27 @@
   const TAB_NAMES = {
     games: "Jogos",
     highlights: "Destaques",
+    controlResults: "RESULTADOS",
+    controlHighlight: "ATLETA_DESTAQUE",
   };
 
   const FIELD_ALIASES = {
-    date: ["data"],
+    id: ["id_jogo", "id", "codigo"],
+    date: ["data", "data_ref"],
     time: ["hora", "horario", "horario_do_jogo"],
     sport: ["modalidade", "esporte"],
     gender: ["genero", "categoria"],
     teamA: ["atletica_a", "atletica_a_nome", "time_a", "equipe_a"],
     teamB: ["atletica_b", "atletica_b_nome", "time_b", "equipe_b"],
+    opponent: ["adversario", "oponente", "atletica_adversaria"],
     scoreA: ["placar_a", "pontos_a", "score_a"],
     scoreB: ["placar_b", "pontos_b", "score_b"],
+    unifiedScore: ["placar_unificada", "placar_unifran", "pontos_unificada"],
+    opponentScore: ["placar_adversario", "placar_oponente", "pontos_adversario"],
     place: ["local", "lugar", "quadra"],
     status: ["status", "situacao"],
+    bestPlayer: ["melhor_jogador", "melhor_atleta", "mvp"],
+    observation: ["observacao", "observacoes", "obs"],
     athlete: ["atleta", "nome", "nome_atleta"],
     description: ["descricao", "destaque", "texto"],
     photoUrl: ["foto_url", "foto", "imagem", "url_foto"],
@@ -26,6 +34,7 @@
 
   const state = {
     games: [],
+    controlResults: [],
     highlights: [],
   };
 
@@ -64,20 +73,41 @@
     setStatus("Lendo dados do Google Sheets...");
 
     try {
-      const [games, highlights] = await Promise.all([
-        loadTab(TAB_NAMES.games, CONFIG.JOGOS_CSV_URL),
-        loadTab(TAB_NAMES.highlights, CONFIG.DESTAQUES_CSV_URL),
+      const [officialGames, controlResultsLoad, controlHighlightLoad] = await Promise.all([
+        loadTab(TAB_NAMES.games, CONFIG.JOGOS_CSV_URL, getOfficialSheetUrl()),
+        optionalLoadTab(
+          TAB_NAMES.controlResults,
+          CONFIG.RESULTADOS_CSV_URL,
+          getControlSheetUrl()
+        ),
+        optionalLoadTab(
+          TAB_NAMES.controlHighlight,
+          CONFIG.ATLETA_DESTAQUE_CSV_URL,
+          getControlSheetUrl()
+        ),
       ]);
 
-      state.games = games.map(normalizeGame);
-      state.highlights = highlights.map(normalizeHighlight);
+      state.controlResults = controlResultsLoad.rows.map(normalizeControlResult);
+      state.games = mergeGamesWithControl(
+        officialGames.map(normalizeGame),
+        state.controlResults
+      );
+      state.highlights = controlHighlightLoad.rows.map(normalizeHighlight);
 
       populateFilters(state.games);
       render();
-      setStatus("Dados atualizados ao carregar a pagina");
+
+      const controlErrors = [controlResultsLoad.error, controlHighlightLoad.error].filter(Boolean);
+      setStatus(
+        controlErrors.length
+          ? "Agenda carregada; controle interno indisponivel"
+          : "Agenda e controle interno atualizados ao carregar a pagina",
+        Boolean(controlErrors.length)
+      );
     } catch (error) {
       console.error(error);
       state.games = [];
+      state.controlResults = [];
       state.highlights = [];
       render();
       setStatus(error.message || "Nao foi possivel ler a planilha", true);
@@ -97,16 +127,37 @@
     });
   }
 
-  async function loadTab(tabName, directCsvUrl) {
+  async function loadTab(tabName, directCsvUrl, sheetUrl) {
     if (directCsvUrl && directCsvUrl.trim()) {
       return fetchCsv(directCsvUrl);
     }
 
-    if (!CONFIG.SHEET_URL || !CONFIG.SHEET_URL.trim()) {
+    if (!sheetUrl || !sheetUrl.trim()) {
       throw new Error("Configure o link publico da planilha em config.js");
     }
 
-    return fetchGoogleVisualizationTab(CONFIG.SHEET_URL, tabName);
+    return fetchGoogleVisualizationTab(sheetUrl, tabName);
+  }
+
+  async function optionalLoadTab(tabName, directCsvUrl, sheetUrl) {
+    if ((!directCsvUrl || !directCsvUrl.trim()) && (!sheetUrl || !sheetUrl.trim())) {
+      return { rows: [], error: null };
+    }
+
+    try {
+      return { rows: await loadTab(tabName, directCsvUrl, sheetUrl), error: null };
+    } catch (error) {
+      console.warn(error);
+      return { rows: [], error };
+    }
+  }
+
+  function getOfficialSheetUrl() {
+    return CONFIG.OFFICIAL_SHEET_URL || CONFIG.SHEET_URL || "";
+  }
+
+  function getControlSheetUrl() {
+    return CONFIG.CONTROL_SHEET_URL || "";
   }
 
   async function fetchCsv(url) {
@@ -226,10 +277,7 @@
   }
 
   function rowsToObjectsFromHeaderRow(rows, tabName) {
-    const required =
-      tabName === TAB_NAMES.highlights
-        ? ["atleta", "ativo"]
-        : ["data", "hora", "modalidade"];
+    const required = requiredHeadersForTab(tabName);
     const headerIndex = rows.findIndex((row) => {
       const keys = row.map(normalizeKey);
       return required.every((key) => keys.includes(key));
@@ -249,6 +297,13 @@
         return object;
       })
       .filter(hasAnyValue);
+  }
+
+  function requiredHeadersForTab(tabName) {
+    if (tabName === TAB_NAMES.highlights) return ["atleta", "ativo"];
+    if (tabName === TAB_NAMES.controlHighlight) return ["ativo", "nome"];
+    if (tabName === TAB_NAMES.controlResults) return ["modalidade", "status"];
+    return ["data", "hora", "modalidade"];
   }
 
   function matrixScheduleToGames(rows) {
@@ -431,13 +486,14 @@
 
   function render() {
     const games = getFilteredGames();
+    const controlResults = getFilteredControlResults();
     const nextGame = findNextGame(games);
 
     renderStats(games, nextGame);
     renderNextConfrontation(nextGame);
     renderHighlight(state.highlights);
     renderMatchList(elements.upcomingList, getUpcomingGames(games), "Nenhum proximo jogo encontrado");
-    renderMatchList(elements.resultsList, getLastResults(games), "Nenhum resultado encontrado");
+    renderMatchList(elements.resultsList, getLastResults(controlResults), "Nenhum resultado encontrado");
     renderGamesTable(games);
 
     elements.lastRead.textContent = new Date().toLocaleString("pt-BR", {
@@ -456,6 +512,20 @@
         (!sport || normalizeValue(game.sport) === sport) &&
         (!gender || normalizeValue(game.gender) === gender) &&
         (!status || normalizeValue(game.status) === status)
+      );
+    });
+  }
+
+  function getFilteredControlResults() {
+    const sport = normalizeValue(elements.sportFilter.value);
+    const gender = normalizeValue(elements.genderFilter.value);
+    const status = normalizeValue(elements.statusFilter.value);
+
+    return state.controlResults.filter((result) => {
+      return (
+        (!sport || normalizeValue(result.sport) === sport) &&
+        (!gender || normalizeValue(result.gender) === gender) &&
+        (!status || normalizeValue(result.status) === status)
       );
     });
   }
@@ -520,12 +590,12 @@
     resetPhoto();
 
     if (!activeHighlight) {
-      elements.highlightName.textContent = "Não informado";
+      elements.highlightName.textContent = "NÃO INFORMADO";
       elements.highlightDescription.textContent = "Nenhum destaque ativo na planilha";
       return;
     }
 
-    elements.highlightName.textContent = activeHighlight.athlete || "Não informado";
+    elements.highlightName.textContent = activeHighlight.athlete || "NÃO INFORMADO";
     elements.highlightDescription.textContent =
       [activeHighlight.sport, activeHighlight.description, activeHighlight.date]
         .filter(Boolean)
@@ -585,7 +655,7 @@
     if (isResultsList) {
       item.appendChild(makeListCell([game.sport, game.gender].filter(Boolean).join(" - ") || "--"));
       item.appendChild(makeListCell(getOpponent(game), "strong"));
-      item.appendChild(makeListCell(makeScore(game), "div", "match-score"));
+      item.appendChild(makeListCell(makeResultSummary(game), "div", "match-score"));
       return item;
     }
 
@@ -664,6 +734,7 @@
 
   function normalizeGame(row) {
     const game = {
+      id: getField(row, FIELD_ALIASES.id),
       date: getField(row, FIELD_ALIASES.date),
       time: getField(row, FIELD_ALIASES.time),
       sport: getField(row, FIELD_ALIASES.sport),
@@ -683,6 +754,30 @@
     return game;
   }
 
+  function normalizeControlResult(row, index) {
+    const result = {
+      id: getField(row, FIELD_ALIASES.id),
+      date: getField(row, FIELD_ALIASES.date),
+      time: getField(row, FIELD_ALIASES.time),
+      sport: getField(row, FIELD_ALIASES.sport),
+      gender: getField(row, FIELD_ALIASES.gender),
+      opponent: getField(row, FIELD_ALIASES.opponent),
+      place: getField(row, FIELD_ALIASES.place),
+      scoreUnified: getField(row, FIELD_ALIASES.unifiedScore),
+      scoreOpponent: getField(row, FIELD_ALIASES.opponentScore),
+      status: getField(row, FIELD_ALIASES.status),
+      bestPlayer: getField(row, FIELD_ALIASES.bestPlayer),
+      observation: getField(row, FIELD_ALIASES.observation),
+      _controlIndex: index,
+    };
+
+    result.teamA = TEAM_NAME;
+    result.teamB = result.opponent;
+    result.sortDate = parseDateTime(result.date, result.time);
+    result.sortOrder = parseTimeSort(result.time);
+    return result;
+  }
+
   function normalizeHighlight(row) {
     const highlight = {
       athlete: getField(row, FIELD_ALIASES.athlete),
@@ -697,6 +792,60 @@
     return highlight;
   }
 
+  function mergeGamesWithControl(games, controlResults) {
+    return games.map((game) => {
+      const controlResult = findControlResultForGame(game, controlResults);
+      return controlResult ? applyControlResult(game, controlResult) : game;
+    });
+  }
+
+  function findControlResultForGame(game, controlResults) {
+    const gameId = normalizeKey(game.id);
+    if (gameId) {
+      const byId = controlResults.find((result) => normalizeKey(result.id) === gameId);
+      if (byId) return byId;
+    }
+
+    return controlResults.find((result) => {
+      return (
+        datesCompatible(game.date, result.date) &&
+        timesCompatible(game.time, result.time) &&
+        sportsCompatible(game, result) &&
+        opponentsCompatible(getOpponent(game), result.opponent)
+      );
+    });
+  }
+
+  function applyControlResult(game, result) {
+    const merged = {
+      ...game,
+      controlResult: result,
+      id: game.id || result.id,
+      scoreUnified: result.scoreUnified,
+      scoreOpponent: result.scoreOpponent,
+      bestPlayer: result.bestPlayer,
+      observation: result.observation,
+    };
+
+    if (result.status) merged.status = result.status;
+    if (!merged.place && result.place) merged.place = result.place;
+
+    if (result.scoreUnified !== "" || result.scoreOpponent !== "") {
+      if (isConfiguredTeam(game.teamA)) {
+        merged.scoreA = result.scoreUnified;
+        merged.scoreB = result.scoreOpponent;
+      } else if (isConfiguredTeam(game.teamB)) {
+        merged.scoreA = result.scoreOpponent;
+        merged.scoreB = result.scoreUnified;
+      } else {
+        merged.scoreA = result.scoreUnified;
+        merged.scoreB = result.scoreOpponent;
+      }
+    }
+
+    return merged;
+  }
+
   function getField(row, aliases) {
     for (const alias of aliases) {
       const key = normalizeKey(alias);
@@ -706,6 +855,62 @@
     }
 
     return "";
+  }
+
+  function datesCompatible(officialDate, controlDate) {
+    const officialKey = dateMatchKey(officialDate);
+    const controlKey = dateMatchKey(controlDate);
+    return !officialKey || !controlKey || officialKey === controlKey;
+  }
+
+  function timesCompatible(officialTime, controlTime) {
+    const officialKey = timeMatchKey(officialTime);
+    const controlKey = timeMatchKey(controlTime);
+    return !officialKey || !controlKey || officialKey === controlKey;
+  }
+
+  function sportsCompatible(officialGame, controlResult) {
+    const officialSport = normalizeValue(officialGame.sport);
+    const controlSport = normalizeValue(controlResult.sport);
+    const officialFull = normalizeValue(
+      [officialGame.sport, officialGame.gender].filter(Boolean).join(" ")
+    );
+    const controlFull = normalizeValue(
+      [controlResult.sport, controlResult.gender].filter(Boolean).join(" ")
+    );
+
+    if (!officialSport || !controlSport) return true;
+    return (
+      officialSport === controlSport ||
+      officialFull === controlFull ||
+      officialFull.includes(controlSport) ||
+      controlFull.includes(officialSport)
+    );
+  }
+
+  function opponentsCompatible(officialOpponent, controlOpponent) {
+    const officialValue = normalizeValue(officialOpponent);
+    const controlValue = normalizeValue(controlOpponent);
+    if (!officialValue || !controlValue) return true;
+    return officialValue === controlValue;
+  }
+
+  function dateMatchKey(value) {
+    const parsed = parseDateTime(value, "");
+    if (parsed instanceof Date && !Number.isNaN(parsed.getTime())) {
+      return [
+        parsed.getFullYear(),
+        String(parsed.getMonth() + 1).padStart(2, "0"),
+        String(parsed.getDate()).padStart(2, "0"),
+      ].join("-");
+    }
+
+    return normalizeValue(value);
+  }
+
+  function timeMatchKey(value) {
+    const parsed = parseTimeSort(value);
+    return parsed == null ? normalizeValue(value) : String(parsed);
   }
 
   function findNextGame(games) {
@@ -722,16 +927,23 @@
   }
 
   function getLastResults(games) {
-    return games.filter(isFinished).sort(sortByDateDesc).slice(0, 8);
+    return games.filter(hasFinalStatus).sort(sortByDateDesc);
   }
 
   function getTeamResult(game) {
     if (!isFinished(game)) return "";
 
+    const unifiedScore = parseScore(game.scoreUnified);
+    const opponentScore = parseScore(game.scoreOpponent);
+    if (unifiedScore != null && opponentScore != null) {
+      if (unifiedScore === opponentScore) return "draw";
+      return unifiedScore > opponentScore ? "win" : "loss";
+    }
+
     const scoreA = parseScore(game.scoreA);
     const scoreB = parseScore(game.scoreB);
-    if (scoreA == null || scoreB == null || scoreA === scoreB) return "";
-
+    if (scoreA == null || scoreB == null) return "";
+    if (scoreA === scoreB) return "draw";
     const teamA = normalizeValue(game.teamA);
     const teamB = normalizeValue(game.teamB);
 
@@ -746,6 +958,8 @@
   }
 
   function getOpponent(game) {
+    if (game.opponent) return game.opponent;
+
     const teamA = normalizeValue(game.teamA);
     const teamB = normalizeValue(game.teamB);
 
@@ -755,11 +969,29 @@
   }
 
   function makeScore(game) {
-    if (game.scoreA !== "" && game.scoreB !== "") {
+    if (hasText(game.scoreUnified) && hasText(game.scoreOpponent)) {
+      return `${game.scoreUnified} x ${game.scoreOpponent}`;
+    }
+
+    if (hasText(game.scoreA) && hasText(game.scoreB)) {
       return `${game.scoreA} x ${game.scoreB}`;
     }
 
     return "--";
+  }
+
+  function makeResultSummary(game) {
+    const parts = [makeScore(game), resultLabel(game)];
+    if (game.bestPlayer) parts.push(`Melhor: ${game.bestPlayer}`);
+    return parts.filter((part) => part && part !== "--").join(" - ") || "--";
+  }
+
+  function resultLabel(game) {
+    const result = getTeamResult(game);
+    if (result === "win") return "Vitória";
+    if (result === "loss") return "Derrota";
+    if (result === "draw") return "Empate";
+    return "Pendente";
   }
 
   function formatDateAndTime(game) {
@@ -768,15 +1000,21 @@
 
   function isFinished(game) {
     const status = normalizeValue(game.status);
-    const hasScore = game.scoreA !== "" && game.scoreB !== "";
+    const hasScore =
+      (hasText(game.scoreA) && hasText(game.scoreB)) ||
+      (hasText(game.scoreUnified) && hasText(game.scoreOpponent));
 
     return (
-      status.includes("finalizado") ||
+      hasFinalStatus(game) ||
       status.includes("encerrado") ||
       status.includes("fim") ||
       status.includes("resultado") ||
       (hasScore && !isCanceled(game))
     );
+  }
+
+  function hasFinalStatus(game) {
+    return normalizeValue(game.status).includes("finalizado");
   }
 
   function isCanceled(game) {
@@ -935,6 +1173,10 @@
 
   function hasAnyValue(row) {
     return Object.values(row).some((value) => String(value || "").trim() !== "");
+  }
+
+  function hasText(value) {
+    return String(value ?? "").trim() !== "";
   }
 
   function initials(name) {
